@@ -1,0 +1,82 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Function:         randcauch = trunc_cauchy(location,scale,llim,uplim)
+%                    
+% Author:           Srikiran Chandrasekaran
+% Description:      Generates a truncated Cauchy distributed random variable given the 
+location and scale parame
+%                   using the differential evolution (DE) algorithm.
+%                   DE works best if [FVr_minbound,FVr_maxbound] covers the region where the
+%                   global minimum is expected. DE is also somewhat sensitive to
+%                   the choice of the stepsize F_weight. A good initial guess is to
+%                   choose F_weight from interval [0.5, 1], e.g. 0.8. F_CR, the crossover
+%                   probability constant from interval [0, 1] helps to maintain
+%                   the diversity of the population but should be close to 1 for most. 
+%                   practical cases. Only separable problems do better with CR close to 0.
+%                   If the parameters are correlated, high values of F_CR work better.
+%                   The reverse is true for no correlation.
+%
+%                   The number of population members I_NP is also not very critical. A
+%                   good initial guess is 10*I_D. Depending on the difficulty of the
+%                   problem I_NP can be lower than 10*I_D or must be higher than 10*I_D
+%                   to achieve convergence.
+%
+%                   deopt is a vectorized variant of DE which, however, has a
+%                   property which differs from the original version of DE:
+%                   The random selection of vectors is performed by shuffling the
+%                   population array. Hence a certain vector can't be chosen twice
+%                   in the same term of the perturbation expression.
+%                   Due to the vectorized expressions deopt executes fairly fast
+%                   in MATLAB's interpreter environment.
+%
+% Parameters:       fname        (I)    String naming a function f(x,y) to minimize.
+%                   S_struct     (I)    Problem data vector (must remain fixed during the
+%                                       minimization). For details see Rundeopt.m.
+%                   ---------members of S_struct----------------------------------------------------
+%                   F_VTR        (I)    "Value To Reach". deopt will stop its minimization
+%                                       if either the maximum number of iterations "I_itermax"
+%                                       is reached or the best parameter vector "FVr_bestmem" 
+%                                       has found a value f(FVr_bestmem,y) <= F_VTR.
+%                   FVr_minbound (I)    Vector of lower bounds FVr_minbound(1) ... FVr_minbound(I_D)
+%                                       of initial population.
+%                                       *** note: these are not bound constraints!! ***
+%                   FVr_maxbound (I)    Vector of upper bounds FVr_maxbound(1) ... FVr_maxbound(I_D)
+%                                       of initial population.
+%                   I_D          (I)    Number of parameters of the objective function. 
+%                   I_NP         (I)    Number of population members.
+%                   I_itermax    (I)    Maximum number of iterations (generations).
+%                   F_weight     (I)    DE-stepsize F_weight from interval [0, 2].
+%                   F_CR         (I)    Crossover probability constant from interval [0, 1].
+%                   I_strategy   (I)    1 --> DE/rand/1             
+%                                       2 --> DE/local-to-best/1             
+%                                       3 --> DE/best/1 with jitter  
+%                                       4 --> DE/rand/1 with per-vector-dither           
+%                                       5 --> DE/rand/1 with per-generation-dither
+%                                       6 --> DE/rand/1 either-or-algorithm
+%                   I_refresh     (I)   Intermediate output will be produced after "I_refresh"
+%                                       iterations. No intermediate output will be produced
+%                                       if I_refresh is < 1.
+%                                       
+% Return value:     FVr_bestmem      (O)    Best parameter vector.
+%                   S_bestval.I_nc   (O)    Number of constraints
+%                   S_bestval.FVr_ca (O)    Constraint values. 0 means the constraints
+%                                           are met. Values > 0 measure the distance
+%                                           to a particular constraint.
+%                   S_bestval.I_no   (O)    Number of objectives.
+%                   S_bestval.FVr_oa (O)    Objective function values.
+%                   I_nfeval         (O)    Number of function evaluations.
+%
+% Note:
+% This program is free software; you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation; either version 1, or (at your option)
+% any later version.
+%
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details. A copy of the GNU 
+% General Public License can be obtained from the 
+% Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function randcauch = trunc_cauchy(location,scale,llim,uplim)
